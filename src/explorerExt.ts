@@ -88,8 +88,8 @@ namespace _{
     }
 }
 interface Entry{
-    uri:vs.Uri,
-    type: vs.FileType
+    uri:vs.Uri;
+    type: vs.FileType;
 }
 export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileSystemProvider{
     
@@ -148,7 +148,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         return Promise.resolve(result);
     }
 
-    createDirectory(uri: vs.Uri): void | Thenable<void> {6
+    createDirectory(uri: vs.Uri): void | Thenable<void> {
         return _.mkdir(uri.fsPath);
     }
 
@@ -279,7 +279,7 @@ class ExtItem extends vs.TreeItem{
         //TODO:
         return "temp";
     }
-    
+
 }
 
 export class FileStat implements vs.FileStat {
