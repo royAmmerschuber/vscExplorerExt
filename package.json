@@ -5,22 +5,33 @@
     "version": "0.0.1",
     "publisher": "RoyAmmerschuber",
     "engines": {
-        "vscode": "^1.26.0"
+        "vscode": "^1.25.1"
     },
     "categories": [
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.sayHello"
+        "onView:explorer-ext"
     ],
     "main": "./out/extension",
     "contributes": {
-        "commands": [
-            {
-                "command": "extension.sayHello",
-                "title": "Hello World"
-            }
-        ]
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "explorer-ext",
+                    "title": "ExplorerExt",
+                    "icon": "media/exp.svg"
+                }
+            ]
+        },
+        "views": {
+            "explorer-ext": [
+                {
+                    "id":"explorer-ext",
+                    "name": "ExplorerExt"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
