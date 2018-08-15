@@ -10,9 +10,12 @@ export function activate(context: vs.ExtensionContext) {
     const provider=new ExplorerExtProvider(context,rootPath); 
     
     vs.window.registerTreeDataProvider("explorer-ext",provider);
-    
+    vs.commands.registerCommand("explorerExt.openFile",(file)=>openFile(file));
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+function openFile(file:vs.Uri){
+    vs.window.showTextDocument(file);
 }
