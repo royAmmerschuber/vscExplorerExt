@@ -35,7 +35,22 @@
                     "name": "ExplorerExt"
                 }
             ]
-        }
+        },
+        "configuration":[
+            {
+                "type":"object",
+                "title": "ExplorerExt",
+                "properties": {
+                    "explorerExt.hideRules":{
+                        "type":"object",
+                        "default":{
+                            "ts":["spec.ts"],
+                            "scss":["css","css.map"]
+                        }
+                    }
+                }
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
