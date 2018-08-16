@@ -227,32 +227,62 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
     
     //TreeDataProvider
     getHideMap(files:[string,vs.FileType][]):HideMapItem[]{
-        const out:HideMapItem[]=[];
+        let out:HideMapItem[]=[];
         for (let i = 0; i < files.length; i++) {
-            const hi =this.getHideMapItem(files[i]);
-            if(hi){
-                out.push(hi);
+            const hi =this.getHideMapItems(files[i]);
+            if(hi.length){
+                out=out.concat(hi);
             }
         }
         console.log("hides:");
         console.log(out);
         return out;
     }
-    getHideMapItem(file:[string,vs.FileType]):HideMapItem|undefined{
+    getHideMapItems(file:[string,vs.FileType]):HideMapItem[]{
+        let out:HideMapItem[]=[];
         if(file[1]!==vs.FileType.Directory){
-            const sepName=file[0].split(".");
-            const ext=sepName[sepName.length-1];
-            //@ts-ignore
-            if(this.hideRules[ext]){
-                return {
-                    base:file[0].slice(0,file[0].length-ext.length),
-                    conEnd:ext,
-                    //@ts-ignore
-                    end:this.hideRules[ext]
-                };
+            for (const ext in this.hideRules) {
+                if(file[0].endsWith(ext)){
+                    out.push({
+                        base:file[0].slice(0,file[0].length-ext.length),
+                        conEnd:ext,
+                        //@ts-ignore
+                        end:this.hideRules[ext]
+                    });
+                }
+            }
+            
+        }
+        return out;
+    }
+
+    isFileInHideMap(file:string,hideMap:HideMapItem[]):boolean{
+        for (let i = 0; i < hideMap.length; i++) {
+            const hi = hideMap[i];
+            for (let i = 0; i < hi.end.length; i++) {
+                const e = hi.end[i];
+                if(file===hi.base+e){
+                    return true;
+                }
             }
         }
-        return;
+        return false;
+    }
+    cleanEntitiyList(entries:Entry[],hideMap:HideMapItem[],parentDir:string):void{
+        fCheck:
+        for (let i = 0; i < entries.length; i++) {
+            const f = entries[i];
+            for (let j = 0; j < hideMap.length; j++) {
+                const hi = hideMap[j];
+                for (let k = 0; k < hi.end.length; k++) {
+                    const e = hi.end[k];
+                    if(f.uri.fsPath.slice(parentDir.length+1)===hi.base+e){
+                        entries.splice(i,1);
+                        continue fCheck;
+                    }
+                }
+            }
+        }
     }
 
     async generateItemList(parentDir:vs.Uri):Promise<Entry[]>{
@@ -274,11 +304,12 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
             if(f[1]===vs.FileType.Directory){
                 out.push({
                     uri: vs.Uri.file(path.join(parentDir.fsPath,f[0])),
-                    type:vs.FileType.Directory
+                    type:vs.FileType.Directory,
+                    hideMapItems:[]
                 });
                 continue;
             }
-            let isVContainer=undefined;
+            let isVContainer:HideMapItem[]=[];
             //for each hideRuleItem
             for (let j = 0; j < hideMap.length; j++) {
                 const hm = hideMap[j];
@@ -294,14 +325,14 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
                     }
                     //if vContainer
                     if(ext===hm.conEnd){
-                        isVContainer=hm;
+                        isVContainer.push(hm);
                     }
                 }
             }
             out.push({
                 uri: vs.Uri.file(path.join(parentDir.fsPath,f[0])),
                 type:f[1],
-                hideMapItem:isVContainer
+                hideMapItems:isVContainer
             });
             
         }
@@ -311,9 +342,16 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         const parentDir=vContainer.uri.fsPath.slice(0,vContainer.uri.fsPath.lastIndexOf("\\"));
         const p=vs.Uri.file(parentDir);
         const files=await this.readDirectory(p);
+        files.sort((a,b)=>{
+            if (a[1]===b[1]){
+                return a[0].localeCompare(b[0]);
+            }
+            return a[1]===vs.FileType.Directory ? -1:1;
+        });
+
         const hideMap=this.getHideMap(files);
-        const currHi=vContainer.hideMapItem;
-        if(!currHi){return [];}
+        const currHi=vContainer.hideMapItems;
+        let subHideMap:HideMapItem[]=[];
 
         const out:Entry[]=[];
         mainLoop:
@@ -324,34 +362,44 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
                 continue;
             }
             //check if currContainer
-            if(f[0]===currHi.base+currHi.conEnd){
+            if(f[0]===currHi[0].base+currHi[0].conEnd){
                 continue;
             }
 
             //check if Container
-            let isVContainer=undefined;
+            let fileHideMap:HideMapItem[]=[];
             for (let j = 0; j < hideMap.length; j++) {
                 const hi = hideMap[j];
                 if(f[0]===hi.base+hi.conEnd){
-                    isVContainer=hi;
-                    break;
+                    fileHideMap.push(hi);
                 }
             }
-
+            subHideMap=subHideMap.concat(fileHideMap);
             //get hiddens of currHi
-            if(f[0].startsWith(currHi.base)){
-                for (let j = 0; j < currHi.end.length; j++) {
-                    const e = currHi.end[j];
-                    if(f[0]===currHi.base+e){
-                        out.push({
-                            uri:vs.Uri.file(path.join(parentDir,f[0])),
-                            type:f[1],
-                            hideMapItem:isVContainer
-                        });
-                        continue mainLoop;
+            //for hidden map items of vContainer
+            for (let j = 0; j < currHi.length; j++) {
+                const cHi = currHi[j];
+                if(f[0].startsWith(cHi.base)){
+                    //for endings in hiddenMapItem
+                    for (let k = 0; k < cHi.end.length; k++) {
+                        const e = cHi.end[k];
+                        if(f[0]===cHi.base+e){
+                            //check if file is in sub hidemap
+                            if(!this.isFileInHideMap(f[0],subHideMap)){
+                                //remove files from out fitting isVContainer
+                                this.cleanEntitiyList(out,fileHideMap,parentDir);
+                                out.push({
+                                    uri:vs.Uri.file(path.join(parentDir,f[0])),
+                                    type:f[1],
+                                    hideMapItems:fileHideMap
+                                });
+                            }
+                            continue mainLoop;
+                        }
                     }
                 }
             }
+            
 
             //check wich vContainers are empty
             for (let j = 0; j < hideMap.length; j++) {
@@ -372,8 +420,8 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
     }
     getChildren(element?: Entry): Promise<Entry[]> {
         if(element){
-            if(element.hideMapItem&&element.hideMapItem.contains){
-                console.log("tried opening vContainer");
+            if(this.isVContainer(element.hideMapItems)){
+                //console.log("tried opening vContainer");
                 return this.generateVItemList(element);
             }
             return this.generateItemList(element.uri);
@@ -386,17 +434,23 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
         return new Promise<Entry[]>(resolve=>resolve([]));
     }
-
-    getTreeItem(element: Entry): ExtItem {
-        if(element.hideMapItem){
-            console.log(element);
+    isVContainer(hideMapItems:HideMapItem[]):boolean{
+        for (let i = 0; i < hideMapItems.length; i++) {
+            const hi = hideMapItems[i];
+            if(hi.contains){
+                return true;
+            }
         }
+        return false;
+    }
+    getTreeItem(element: Entry): ExtItem {
+        const isVContainer=this.isVContainer(element.hideMapItems);
         const treeItem=new ExtItem(
             element.uri,
-            element.type===vs.FileType.Directory||(element.hideMapItem&&element.hideMapItem.contains)?
+            element.type===vs.FileType.Directory||isVContainer?
                 vs.TreeItemCollapsibleState.Collapsed:
                 vs.TreeItemCollapsibleState.None,
-                (element.hideMapItem&&element.hideMapItem.contains)==true
+                isVContainer
         );
         if(element.type===vs.FileType.File){
             treeItem.command={command: 'explorerExt.openFile',title:"Open File", arguments:[element.uri],};
@@ -409,7 +463,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
 interface Entry{
     uri:vs.Uri;
     type: vs.FileType;
-    hideMapItem?:HideMapItem;
+    hideMapItems:HideMapItem[];
 }
 
 class ExtItem extends vs.TreeItem{
