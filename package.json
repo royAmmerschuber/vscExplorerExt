@@ -44,9 +44,14 @@
                     "explorerExt.hideRules":{
                         "type":"object",
                         "default":{
+                            "component.ts":["component.css","component.html","component.scss"],
                             "ts":["spec.ts"],
                             "scss":["css","css.map"]
                         }
+                    },
+                    "explorerExt.importQuickNav":{
+                        "type":"boolean",
+                        "default":false
                     }
                 }
             }
