@@ -15,10 +15,20 @@
     ],
     "main": "./out/extension",
     "contributes": {
-        "commands":[{
-            "command": "explorerExt.openFile",
-            "title": "open file"
-        }],
+        "commands":[
+            {
+                "command": "explorerExt.openFile",
+                "title": "open file"
+            },
+            {
+                "command": "explorerExt.reload",
+                "title": "reload explorerExt"
+            },
+            {
+                "command": "explorerExt.reloadConfig",
+                "title": "Reload Congiguration"
+            }
+        ],
         "viewsContainers": {
             "activitybar": [
                 {

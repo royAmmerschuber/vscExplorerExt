@@ -11,6 +11,12 @@ export function activate(context: vs.ExtensionContext) {
     
     vs.window.registerTreeDataProvider("explorer-ext",provider);
     vs.commands.registerCommand("explorerExt.openFile",(file)=>openFile(file));
+    vs.commands.registerCommand("explorerExt.reload",function() {
+        provider.reload();
+    });
+    vs.commands.registerCommand("explorerExt.reloadConfig",()=>{
+        provider.loadHideRules();
+    });
 }
 
 export function deactivate() {

@@ -89,24 +89,47 @@ namespace _{
 }
 
 export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileSystemProvider{
+    //@ts-ignore
     private hideRules:{};
     //FileSystemProvider
 
     private _onDidChangeFile: vs.EventEmitter<vs.FileChangeEvent[]>;
-    
+    private _onDidChangeTreeData: vs.EventEmitter<Entry|undefined|null>;
+
+
     constructor(){
         this._onDidChangeFile= new vs.EventEmitter<vs.FileChangeEvent[]>();
+        this._onDidChangeTreeData=new vs.EventEmitter<Entry|undefined|null>();
+        if(vs.workspace.workspaceFolders){
+            this.watch(vs.workspace.workspaceFolders.filter(folder => folder.uri.scheme==='file')[0].uri,
+            {recursive:true,excludes:[]});
+        }
+        vs.workspace.onDidChangeConfiguration(e=>{
+            this.loadHideRules(true);
+        });
+        this.loadHideRules();
+    }
+    get onDidChangeTreeData():vs.Event<Entry|undefined|null>{
+        return this._onDidChangeTreeData.event;
+    }
+    get onDidChangeFile(): vs.Event<vs.FileChangeEvent[]>{
+        return this._onDidChangeFile.event;
+    }
 
+    reload(){
+        this._onDidChangeTreeData.fire();
+    }
+
+    loadHideRules(reload:boolean=false){
         const hideRules=vs.workspace.getConfiguration("explorerExt").get("hideRules");
         if(hideRules){
             this.hideRules=hideRules;
         }else{
             this.hideRules={};
         }
-    }
-    
-    get onDidChangeFile(): vs.Event<vs.FileChangeEvent[]>{
-        return this._onDidChangeFile.event;
+        if(reload){
+            this.reload();
+        }
     }
 
     watch(
@@ -115,7 +138,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
     ): vs.Disposable{
         const watcher=fs.watch(uri.fsPath,{recursive:options.recursive}, async (event: string, filename: string|Buffer)=>{
             const filepath=path.join(uri.fsPath, filename.toString().normalize("NFC"));
-
+            this._onDidChangeTreeData.fire();
             this._onDidChangeFile.fire([{
                 type:(event === 'change') ? 
                     (vs.FileChangeType.Changed): 
