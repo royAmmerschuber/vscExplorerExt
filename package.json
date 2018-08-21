@@ -27,8 +27,110 @@
             {
                 "command": "explorerExt.reloadConfig",
                 "title": "Reload Congiguration"
+            },
+            {
+                "command": "explorerExt.deleteFile",
+                "title": "delete"
+            },
+            {
+                "command": "explorerExt.copy",
+                "title": "copy"
+            },
+            {
+                "command": "explorerExt.cut",
+                "title": "cut"
+            },
+            {
+                "command": "explorerExt.paste",
+                "title": "paste"
+            },
+            {
+                "command": "explorerExt.newFile",
+                "title": "new File"
+            },
+            {
+                "command": "explorerExt.newFolder",
+                "title": "new Folder"
+            },
+            {
+                "command": "explorerExt.rename",
+                "title": "rename"
             }
         ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "when": "false",
+                    "command": "explorerExt.openFile"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.deleteFile"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.copy"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.cut"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.paste"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.newFile"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.newFolder"
+                },
+                {
+                    "when": "false",
+                    "command": "explorerExt.rename"
+                }
+            ],
+            "view/item/context": [
+                {
+                    
+                    "when": "viewItem=~ /file|folder/",
+                    "command": "explorerExt.deleteFile",
+                    "group": "7_modification"
+                },
+                {
+                    "when": "viewItem=~ /file|folder/",
+                    "command": "explorerExt.copy",
+                    "group": "5_cutcopypaste"
+                },
+                {
+                    "when": "viewItem=~ /file|folder/",
+                    "command": "explorerExt.cut",
+                    "group": "5_cutcopypaste"
+                },
+                {
+                    "when": "viewItem=~ /file|folder/",
+                    "command": "explorerExt.paste",
+                    "group": "5_cutcopypaste"
+                },
+                {
+                    "when": "viewItem=='folder'",
+                    "command": "explorerExt.newFile",
+                    "group": "navigation"
+                },
+                {
+                    "when": "viewItem=='folder'",
+                    "command": "explorerExt.newFolder",
+                    "group": "navigation"
+                },
+                {
+                    "when": "viewItem=~ /file|folder/",
+                    "command": "explorerExt.rename",
+                    "group": "7_modification"
+                }
+            ]
+        },
         "viewsContainers": {
             "activitybar": [
                 {
@@ -39,7 +141,7 @@
             ]
         },
         "views": {
-            "explorer-ext": [
+            "explorer": [
                 {
                     "id":"explorer-ext",
                     "name": "ExplorerExt"

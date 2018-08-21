@@ -75,6 +75,12 @@ namespace _{
         });
     }
 
+    export function writefile(path:string, content:Buffer):Promise<void>{
+        return new Promise<void>((resolve,reject)=>{
+            fs.writeFile(path,content,error=> handleResult(resolve,reject,error,void 0));
+        });
+    }
+
     export function unlink(path:string):Promise<void>{
         return new Promise<void>((resolve,reject)=>{
             fs.unlink(path,error=>handleResult(resolve,reject,error,void 0));
@@ -121,11 +127,15 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
     }
 
     loadHideRules(reload:boolean=false){
-        const hideRules=vs.workspace.getConfiguration("explorerExt").get("hideRules");
-        if(hideRules){
-            this.hideRules=hideRules;
-        }else{
-            this.hideRules={};
+        const hr=vs.workspace.getConfiguration("explorerExt").inspect("hideRules");
+        if (hr){
+            if(hr.workspaceValue){
+                this.hideRules=hr.workspaceValue;
+            }else if(hr.globalValue){
+                this.hideRules=hr.globalValue;
+            }else if(hr.defaultValue){
+                this.hideRules=hr.defaultValue;
+            }
         }
         if(reload){
             this.reload();
@@ -201,13 +211,20 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
             if(!options.create){
                 throw vs.FileSystemError.FileNotFound();
             }
-
             await _.mkdir(path.dirname(uri.fsPath));
         }else{
             if(!options.overwrite){
                 throw vs.FileSystemError.FileExists();
             }
         }
+        return _.writefile(uri.fsPath, content as Buffer);
+    }
+
+    mkdir(uri:vs.Uri){
+        return this._mkdir(uri.fsPath);
+    }
+    async _mkdir(uri:string):Promise<void>{
+        return await _.mkdir(uri);
     }
 
     delete(
@@ -219,7 +236,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
         return _.unlink(uri.fsPath);
     }
-
+ 
     rename(
         oldUri: vs.Uri, 
         newUri: vs.Uri, 
@@ -248,6 +265,13 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         return _.rename(oldUri.fsPath,newUri.fsPath);
     }
     
+	exists(file:vs.Uri):boolean|Thenable<boolean>{
+		return this._exists(file.fsPath);
+	}
+	async _exists(path:string):Promise<boolean>{
+		return await _.exists(path);
+	}
+
     //TreeDataProvider
     getHideMap(files:[string,vs.FileType][]):HideMapItem[]{
         let out:HideMapItem[]=[];
@@ -483,7 +507,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
     }
 }
 
-interface Entry{
+export interface Entry{
     uri:vs.Uri;
     type: vs.FileType;
     hideMapItems:HideMapItem[];
@@ -499,15 +523,19 @@ class ExtItem extends vs.TreeItem{
         super(resourceUri,collapsibleState);
         if(virtual){
             this.iconPath=vs.ThemeIcon.File;
+            this.contextValue="file";
+        }else if(collapsibleState===vs.TreeItemCollapsibleState.None){
+            this.contextValue="file";
+        }else{
+            this.contextValue="folder";
         }
+        
+
     }
     
     get tooltip():string{
-        //TODO:
-        
         return this.resourceUri.fsPath;
     }
-
 }
 
 interface HideMapItem{
