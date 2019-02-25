@@ -11,7 +11,6 @@ export function activate(context: vs.ExtensionContext) {
     const rootPath = vs.workspace.rootPath;
     //@ts-ignore
     const provider=new ExplorerExtProvider(context,rootPath); 
-    
     vs.window.registerTreeDataProvider("explorer-ext",provider);
     vs.commands.registerCommand("explorerExt.openFile",(file)=>{console.log(file);openFile(file);});
     vs.commands.registerCommand("explorerExt.newFile",async (file:Entry)=>{

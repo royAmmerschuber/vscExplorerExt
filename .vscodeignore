@@ -6,4 +6,5 @@ src/**
 .gitignore
 tsconfig.json
 vsc-extension-quickstart.md
+*.docx
 tslint.json

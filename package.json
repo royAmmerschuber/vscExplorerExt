@@ -100,21 +100,6 @@
                     "group": "7_modification"
                 },
                 {
-                    "when": "viewItem=~ /file|folder/",
-                    "command": "explorerExt.copy",
-                    "group": "5_cutcopypaste"
-                },
-                {
-                    "when": "viewItem=~ /file|folder/",
-                    "command": "explorerExt.cut",
-                    "group": "5_cutcopypaste"
-                },
-                {
-                    "when": "viewItem=~ /file|folder/",
-                    "command": "explorerExt.paste",
-                    "group": "5_cutcopypaste"
-                },
-                {
                     "when": "viewItem=='folder'",
                     "command": "explorerExt.newFile",
                     "group": "navigation"
@@ -128,15 +113,6 @@
                     "when": "viewItem=~ /file|folder/",
                     "command": "explorerExt.rename",
                     "group": "7_modification"
-                }
-            ]
-        },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "explorer-ext",
-                    "title": "ExplorerExt",
-                    "icon": "media/exp.svg"
                 }
             ]
         },
@@ -160,10 +136,6 @@
                             "ts":["spec.ts"],
                             "scss":["css","css.map"]
                         }
-                    },
-                    "explorerExt.importQuickNav":{
-                        "type":"boolean",
-                        "default":false
                     }
                 }
             }

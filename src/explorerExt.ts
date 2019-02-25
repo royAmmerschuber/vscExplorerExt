@@ -115,10 +115,10 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         });
         this.loadHideRules();
     }
-    get onDidChangeTreeData():vs.Event<Entry|undefined|null>{
+    get onDidChangeTreeData(){
         return this._onDidChangeTreeData.event;
     }
-    get onDidChangeFile(): vs.Event<vs.FileChangeEvent[]>{
+    get onDidChangeFile(){
         return this._onDidChangeFile.event;
     }
 
@@ -142,10 +142,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
     }
 
-    watch(
-        uri: vs.Uri,
-        options:{ recursive: boolean; excludes: string[]; }
-    ): vs.Disposable{
+    watch(uri: vs.Uri,options:{ recursive: boolean; excludes: string[]; }){
         const watcher=fs.watch(uri.fsPath,{recursive:options.recursive}, async (event: string, filename: string|Buffer)=>{
             const filepath=path.join(uri.fsPath, filename.toString().normalize("NFC"));
             this._onDidChangeTreeData.fire();
@@ -162,19 +159,16 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         return {dispose: ()=> watcher.close()};
     }
 
-    stat(uri: vs.Uri): vs.FileStat | Thenable<vs.FileStat> {
+    stat(uri: vs.Uri){
 		return this._stat(uri.fsPath);
 	}
 
-	async _stat(path: string): Promise<vs.FileStat> {
+	async _stat(path: string){
 		return new FileStat(await _.stat(path));
 	}
 
 
-    readDirectory(uri: vs.Uri): [string, vs.FileType][] | Thenable<[string, vs.FileType][]> {
-        return this._readDirectory(uri);
-    }
-    async _readDirectory(uri:vs.Uri):Promise<[string,vs.FileType][]>{
+    async readDirectory(uri: vs.Uri){
         const children= await _.readdir(uri.fsPath);
 
         const result:[string, vs.FileType][]=[];
@@ -183,29 +177,21 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
             const stat=await this._stat(path.join(uri.fsPath,child));
             result.push([child,stat.type]);
         }
-        return Promise.resolve(result);
+        return result;
     }
 
-    createDirectory(uri: vs.Uri): void | Thenable<void> {
+    createDirectory(uri: vs.Uri){
         return _.mkdir(uri.fsPath);
     }
 
-    readFile(uri: vs.Uri): Uint8Array | Thenable<Uint8Array> {
+    readFile(uri: vs.Uri){
         return _.readfile(uri.fsPath);
     }
 
-    writeFile(
-        uri: vs.Uri, 
-        content: Uint8Array, 
-        options: { create: boolean; overwrite: boolean; }
-    ): void | Thenable<void> {
-        return this._writeFile(uri,content,options);
-    }
-    async _writeFile(
-        uri:vs.Uri,
-        content:Uint8Array,
-        options:{create:boolean; overwrite:boolean;}
-    ):Promise<void>{
+    async writeFile(uri: vs.Uri, content: Uint8Array, options: { 
+        create: boolean; 
+        overwrite: boolean; 
+    }){
         const exists= await _.exists(uri.fsPath);
         if (!exists){
             if(!options.create){
@@ -220,34 +206,17 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         return _.writefile(uri.fsPath, content as Buffer);
     }
 
-    mkdir(uri:vs.Uri){
-        return this._mkdir(uri.fsPath);
-    }
-    async _mkdir(uri:string):Promise<void>{
-        return await _.mkdir(uri);
-    }
-
     delete(
         uri: vs.Uri, 
         options: { recursive: boolean; }
-    ): void | Thenable<void> {
+    ){
         if(options.recursive){
             return _.rmrf(uri.fsPath);
         }
         return _.unlink(uri.fsPath);
     }
  
-    rename(
-        oldUri: vs.Uri, 
-        newUri: vs.Uri, 
-        options: { overwrite: boolean; }
-    ): void | Thenable<void> {
-        return this._rename(oldUri,newUri,options);
-    }
-    async _rename(oldUri:vs.Uri,
-        newUri:vs.Uri,
-        options:{overwrite: boolean;}
-    ):Promise<void>{
+    async rename(oldUri: vs.Uri,newUri: vs.Uri,options: { overwrite: boolean; }){
         const exists=await _.exists(newUri.fsPath);
         if(exists){
             if(!options.overwrite){
@@ -265,18 +234,33 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         return _.rename(oldUri.fsPath,newUri.fsPath);
     }
     
-	exists(file:vs.Uri):boolean|Thenable<boolean>{
-		return this._exists(file.fsPath);
-	}
-	async _exists(path:string):Promise<boolean>{
-		return await _.exists(path);
+	exists(file:vs.Uri){
+		return _.exists(file.fsPath);
 	}
 
     //TreeDataProvider
-    getHideMap(files:[string,vs.FileType][]):HideMapItem[]{
+    private getHideMap(files:[string,vs.FileType][]){
+        const getHideMapItems=(file:[string,vs.FileType]) => {
+            let out:HideMapItem[]=[];
+            if(file[1]!==vs.FileType.Directory){
+                for (const ext in this.hideRules) {
+                    if(file[0].endsWith(ext)){
+                        out.push({
+                            base:file[0].slice(0,file[0].length-ext.length),
+                            conEnd:ext,
+                            //@ts-ignore
+                            end:this.hideRules[ext],
+                            contains:false
+                        });
+                    }
+                }
+                
+            }
+            return out;
+        }
         let out:HideMapItem[]=[];
         for (let i = 0; i < files.length; i++) {
-            const hi =this.getHideMapItems(files[i]);
+            const hi =getHideMapItems(files[i]);
             if(hi.length){
                 out=out.concat(hi);
             }
@@ -285,25 +269,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         console.log(out);
         return out;
     }
-    getHideMapItems(file:[string,vs.FileType]):HideMapItem[]{
-        let out:HideMapItem[]=[];
-        if(file[1]!==vs.FileType.Directory){
-            for (const ext in this.hideRules) {
-                if(file[0].endsWith(ext)){
-                    out.push({
-                        base:file[0].slice(0,file[0].length-ext.length),
-                        conEnd:ext,
-                        //@ts-ignore
-                        end:this.hideRules[ext]
-                    });
-                }
-            }
-            
-        }
-        return out;
-    }
-
-    isFileInHideMap(file:string,hideMap:HideMapItem[]):boolean{
+    private isFileInHideMap(file:string,hideMap:HideMapItem[]):boolean{
         for (let i = 0; i < hideMap.length; i++) {
             const hi = hideMap[i];
             for (let i = 0; i < hi.end.length; i++) {
@@ -315,7 +281,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
         return false;
     }
-    cleanEntitiyList(entries:Entry[],hideMap:HideMapItem[],parentDir:string):void{
+    private cleanEntitiyList(entries:Entry[],hideMap:HideMapItem[],parentDir:string):void{
         fCheck:
         for (let i = 0; i < entries.length; i++) {
             const f = entries[i];
@@ -332,7 +298,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
     }
 
-    async generateItemList(parentDir:vs.Uri):Promise<Entry[]>{
+    private async generateItemList(parentDir:vs.Uri):Promise<Entry[]>{
         const files=await this.readDirectory(parentDir);
         files.sort((a,b)=>{
             if (a[1]===b[1]){
@@ -385,7 +351,7 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
         return out;
     }
-    async generateVItemList(vContainer:Entry):Promise<Entry[]>{
+    private async generateVItemList(vContainer:Entry):Promise<Entry[]>{
         const parentDir=vContainer.uri.fsPath.slice(0,vContainer.uri.fsPath.lastIndexOf("\\"));
         const p=vs.Uri.file(parentDir);
         const files=await this.readDirectory(p);
@@ -465,33 +431,30 @@ export class ExplorerExtProvider implements vs.TreeDataProvider<Entry>, vs.FileS
         }
         return out;
     }
-    getChildren(element?: Entry): Promise<Entry[]> {
-        if(element){
-            if(this.isVContainer(element.hideMapItems)){
-                //console.log("tried opening vContainer");
-                return this.generateVItemList(element);
-            }
-            return this.generateItemList(element.uri);
+    private async generateBaseItemList():Promise<Entry[]>{
+        if(!vs.workspace.workspaceFolders){
+            return [];
         }
-        if(vs.workspace.workspaceFolders){
-            const workspaceFolder=vs.workspace.workspaceFolders.filter(folder => folder.uri.scheme==='file')[0];
-            if(workspaceFolder){
-                return this.generateItemList(workspaceFolder.uri);
-            }
-        }
-        return new Promise<Entry[]>(resolve=>resolve([]));
+        return vs.workspace.workspaceFolders
+            .filter(folder => folder.uri.scheme==='file')
+            .sort((a,b) => a.index-b.index)
+            .map(v => ({
+                uri:v.uri,
+                type:vs.FileType.Directory,
+                hideMapItems:[]
+            }));
     }
-    isVContainer(hideMapItems:HideMapItem[]):boolean{
-        for (let i = 0; i < hideMapItems.length; i++) {
-            const hi = hideMapItems[i];
-            if(hi.contains){
-                return true;
-            }
+    getChildren(element?: Entry): Promise<Entry[]> {
+        if(!element){
+            return this.generateBaseItemList();
         }
-        return false;
+        if(element.hideMapItems.some(v => v.contains)){
+            return this.generateVItemList(element);
+        }
+        return this.generateItemList(element.uri);
     }
     getTreeItem(element: Entry): ExtItem {
-        const isVContainer=this.isVContainer(element.hideMapItems);
+        const isVContainer=element.hideMapItems.some(v=>v.contains);
         const treeItem=new ExtItem(
             element.uri,
             element.type===vs.FileType.Directory||isVContainer?
@@ -529,8 +492,6 @@ class ExtItem extends vs.TreeItem{
         }else{
             this.contextValue="folder";
         }
-        
-
     }
     
     get tooltip():string{
@@ -554,7 +515,7 @@ interface HideMapItem{
     /**
      * if there are any files to be contained
      */
-    contains?:boolean;
+    contains:boolean;
 }
 
 export class FileStat implements vs.FileStat {
